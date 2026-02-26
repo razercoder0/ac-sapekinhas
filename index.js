@@ -92,11 +92,12 @@ app.get('/ping', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ── SLASH COMMANDS ────────────────────────────────────────────────────────────
 const commands = [
-    new SlashCommandBuilder()
-        .setName('registrar')
-        .setDescription('Registra um novo usuário e envia as credenciais por DM')
-        .addUserOption(o => o.setName('usuario').setDescription('Usuário do Discord').setRequired(true))
-        .addStringOption(o => o.setName('username').setDescription('Nome de login (deixe vazio pra usar o nick do Discord)').setRequired(false)),
+new SlashCommandBuilder()
+    .setName('registrar')
+    .setDescription('Registra um novo usuário e envia as credenciais por DM')
+    .addUserOption(o => o.setName('usuario').setDescription('Usuário do Discord').setRequired(true))
+    .addStringOption(o => o.setName('username').setDescription('Nome de login (deixe vazio pra usar o nick do Discord)').setRequired(false))
+    .addStringOption(o => o.setName('senha').setDescription('Senha personalizada (deixe vazio pra gerar automático)').setRequired(false)),
 
     new SlashCommandBuilder()
         .setName('remover')
@@ -187,7 +188,7 @@ client.on('interactionCreate', async interaction => {
         if (exists)
             return interaction.editReply(`❌ Username **${username}** já existe! Use outro ou passe um diferente.`);
 
-        const password     = generatePassword();
+        const password     = interaction.options.getString('senha') || generatePassword();
         const passwordHash = hashPassword(password);
 
         const user = await User.create({
@@ -532,3 +533,4 @@ async function main() {
 }
 
 main().catch(e => { console.error('❌ Erro fatal:', e); process.exit(1); });
+
