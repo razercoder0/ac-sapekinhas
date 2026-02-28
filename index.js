@@ -16,7 +16,7 @@ const CHANNEL_ID    = process.env.CHANNEL_ID;
 const LOG_CHANNEL   = process.env.LOG_CHANNEL_ID;
 const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID;
 const API_SECRET    = process.env.API_SECRET;
-const MONGO_URI     = process.env.MONGO_URI;      // mongodb+srv://...
+const MONGO_URI     = process.env.MONGO_URI;
 const PORT          = process.env.PORT || 3000;
 const SELF_URL      = process.env.SELF_URL || null;
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,8 +32,8 @@ const userSchema = new mongoose.Schema({
     registeredAt:{ type: Date, default: Date.now },
     lastLogin:   { type: Date, default: null },
     sessions:    { type: Number, default: 0 },
-    expiresAt:   { type: Date, default: null }, // Data de expiração
-    daysTotal:   { type: Number, default: 0 },  // Total de dias da licença
+    expiresAt:   { type: Date, default: null },
+    daysTotal:   { type: Number, default: 0 },
     history:     [{ action: String, by: String, at: Date, note: String }]
 });
 
@@ -232,7 +232,6 @@ client.on('interactionCreate', async interaction => {
             history: [{ action:'registered', by:adminTag, at:now(), note:`${dias} dias de licença` }]
         });
 
-        // Manda DM
         try {
             const dm = await discordUser.createDM();
             await dm.send({ embeds: [
@@ -258,10 +257,10 @@ client.on('interactionCreate', async interaction => {
         await sendLog(new EmbedBuilder()
             .setTitle('📥 Novo Usuário Registrado').setColor(0x8800ff)
             .addFields(
-                { name:'Username',   value:username,           inline:true },
+                { name:'Username',   value:username,               inline:true },
                 { name:'Discord',    value:`<@${discordUser.id}>`, inline:true },
-                { name:'Dias',       value:`${dias}`,          inline:true },
-                { name:'Admin',      value:adminTag,           inline:true }
+                { name:'Dias',       value:`${dias}`,              inline:true },
+                { name:'Admin',      value:adminTag,               inline:true }
             ).setTimestamp());
 
         return interaction.editReply({ embeds: [
@@ -308,7 +307,7 @@ client.on('interactionCreate', async interaction => {
                         .setTitle('🔑 Sua senha foi resetada — SAPECAS CLIENT')
                         .setColor(0xff6600)
                         .addFields(
-                            { name:'👤 Usuário', value:`\`${username}\``, inline:true },
+                            { name:'👤 Usuário',   value:`\`${username}\``, inline:true },
                             { name:'🔑 Nova Senha', value:`\`${newPass}\``, inline:true }
                         )
                         .setFooter({ text:'Não compartilhe!' })
@@ -394,7 +393,7 @@ client.on('interactionCreate', async interaction => {
         const user     = await User.findOne({ username });
         if (!user) return interaction.editReply(`❌ Usuário **${username}** não encontrado!`);
 
-        const daysLeft = getDaysLeft(user.expiresAt);
+        const daysLeft  = getDaysLeft(user.expiresAt);
         const isExpired = daysLeft === 0;
 
         return interaction.editReply({ embeds: [
@@ -402,15 +401,15 @@ client.on('interactionCreate', async interaction => {
                 .setTitle(`👤 Info — ${user.username}`)
                 .setColor(user.status === 'active' && !isExpired ? 0x00cc44 : 0xcc2200)
                 .addFields(
-                    { name:'Status',       value: user.status === 'active' ? (isExpired ? '⏰ Expirado' : '🟢 Ativo') : '🔴 Banido', inline:true },
+                    { name:'Status',         value: user.status === 'active' ? (isExpired ? '⏰ Expirado' : '🟢 Ativo') : '🔴 Banido', inline:true },
                     { name:'Dias restantes', value:`${daysLeft} dias`, inline:true },
-                    { name:'Expira em',    value:fmtDate(user.expiresAt), inline:true },
-                    { name:'Sessões',      value:`${user.sessions}`, inline:true },
-                    { name:'Último login', value:fmtDate(user.lastLogin), inline:true },
-                    { name:'Discord',      value:user.discordId ? `<@${user.discordId}>` : '—', inline:true },
+                    { name:'Expira em',      value:fmtDate(user.expiresAt), inline:true },
+                    { name:'Sessões',        value:`${user.sessions}`, inline:true },
+                    { name:'Último login',   value:fmtDate(user.lastLogin), inline:true },
+                    { name:'Discord',        value:user.discordId ? `<@${user.discordId}>` : '—', inline:true },
                     { name:'Registrado por', value:user.registeredBy || '—', inline:true },
-                    { name:'Registrado em', value:fmtDate(user.registeredAt), inline:true },
-                    { name:'HWID',         value:user.hwid ? `\`${user.hwid}\`` : '*não vinculado*', inline:false },
+                    { name:'Registrado em',  value:fmtDate(user.registeredAt), inline:true },
+                    { name:'HWID',           value:user.hwid ? `\`${user.hwid}\`` : '*não vinculado*', inline:false },
                 ).setTimestamp()
         ]});
     }
@@ -420,23 +419,11 @@ client.on('interactionCreate', async interaction => {
         const filtro = interaction.options.getString('filtro') || 'all';
         let users = await User.find().sort({ registeredAt: -1 });
 
-        if (filtro === 'banned') {
-            users = users.filter(u => u.status === 'banned');
-        } else if (filtro === 'expired') {
-            users = users.filter(u => getDaysLeft(u.expiresAt) === 0);
-        } else if (filtro === '1-7') {
-            users = users.filter(u => {
-                const days = getDaysLeft(u.expiresAt);
-                return days >= 1 && days <= 7;
-            });
-        } else if (filtro === '8-30') {
-            users = users.filter(u => {
-                const days = getDaysLeft(u.expiresAt);
-                return days >= 8 && days <= 30;
-            });
-        } else if (filtro === '30+') {
-            users = users.filter(u => getDaysLeft(u.expiresAt) > 30);
-        }
+        if (filtro === 'banned')        users = users.filter(u => u.status === 'banned');
+        else if (filtro === 'expired')  users = users.filter(u => getDaysLeft(u.expiresAt) === 0);
+        else if (filtro === '1-7')      users = users.filter(u => { const d = getDaysLeft(u.expiresAt); return d >= 1 && d <= 7; });
+        else if (filtro === '8-30')     users = users.filter(u => { const d = getDaysLeft(u.expiresAt); return d >= 8 && d <= 30; });
+        else if (filtro === '30+')      users = users.filter(u => getDaysLeft(u.expiresAt) > 30);
 
         if (users.length === 0)
             return interaction.editReply(`Nenhum usuário com filtro **${filtro}**.`);
@@ -483,27 +470,25 @@ client.on('interactionCreate', async interaction => {
 
     // ── /stats ────────────────────────────────────────────────────────────────
     if (cmd === 'stats') {
-        const total    = await User.countDocuments();
-        const active   = await User.countDocuments({ status:'active' });
-        const banned   = await User.countDocuments({ status:'banned' });
+        const total     = await User.countDocuments();
+        const active    = await User.countDocuments({ status:'active' });
+        const banned    = await User.countDocuments({ status:'banned' });
         const threshold = new Date(Date.now() - 5 * 60 * 1000);
-        const online   = await User.countDocuments({ lastLogin: { $gte: threshold }, status:'active' });
-        const sessions = await User.aggregate([{ $group: { _id:null, total: { $sum:'$sessions' } } }]);
+        const online    = await User.countDocuments({ lastLogin: { $gte: threshold }, status:'active' });
+        const sessions  = await User.aggregate([{ $group: { _id:null, total: { $sum:'$sessions' } } }]);
         const totalSessions = sessions[0]?.total || 0;
-
-        // Conta expirados
-        const allUsers = await User.find();
-        const expired = allUsers.filter(u => getDaysLeft(u.expiresAt) === 0).length;
+        const allUsers  = await User.find();
+        const expired   = allUsers.filter(u => getDaysLeft(u.expiresAt) === 0).length;
 
         return interaction.editReply({ embeds: [
             new EmbedBuilder().setTitle('📊 Estatísticas').setColor(0x8800ff)
                 .addFields(
-                    { name:'🟢 Online agora',  value:`\`${online}\``,        inline:true },
-                    { name:'✅ Ativos',         value:`\`${active}\``,        inline:true },
-                    { name:'🔨 Banidos',        value:`\`${banned}\``,        inline:true },
-                    { name:'⏰ Expirados',      value:`\`${expired}\``,       inline:true },
-                    { name:'👥 Total',          value:`\`${total}\``,         inline:true },
-                    { name:'💉 Total sessões',  value:`\`${totalSessions}\``, inline:true },
+                    { name:'🟢 Online agora', value:`\`${online}\``,        inline:true },
+                    { name:'✅ Ativos',        value:`\`${active}\``,        inline:true },
+                    { name:'🔨 Banidos',       value:`\`${banned}\``,        inline:true },
+                    { name:'⏰ Expirados',     value:`\`${expired}\``,       inline:true },
+                    { name:'👥 Total',         value:`\`${total}\``,         inline:true },
+                    { name:'💉 Total sessões', value:`\`${totalSessions}\``, inline:true },
                 ).setTimestamp()
         ]});
     }
@@ -570,7 +555,6 @@ client.on('interactionCreate', async interaction => {
 });
 
 // ── API ROUTES ────────────────────────────────────────────────────────────────
-
 app.post('/login', async (req, res) => {
     const sig = req.headers['x-signature'];
     if (!verifySignature(req, sig)) return res.status(401).json({ error: 'Assinatura invalida' });
@@ -581,14 +565,11 @@ app.post('/login', async (req, res) => {
 
     const user = await User.findOne({ username });
 
-    if (!user)                                    return res.json({ status: 'invalid', error: 'Usuario nao encontrado' });
-    if (user.passwordHash !== hashPassword(password)) return res.json({ status: 'invalid', error: 'Senha incorreta' });
-    if (user.status === 'banned')                 return res.json({ status: 'banned',  error: 'Conta banida' });
+    if (!user)                                         return res.json({ status: 'invalid', error: 'Usuario nao encontrado' });
+    if (user.passwordHash !== hashPassword(password))  return res.json({ status: 'invalid', error: 'Senha incorreta' });
+    if (user.status === 'banned')                      return res.json({ status: 'banned',  error: 'Conta banida' });
+    if (getDaysLeft(user.expiresAt) === 0)             return res.json({ status: 'expired', error: 'Licenca expirada' });
 
-    // Verifica expiração
-    if (getDaysLeft(user.expiresAt) === 0)        return res.json({ status: 'expired', error: 'Licenca expirada' });
-
-    // Vincula HWID
     if (!user.hwid) {
         user.hwid = hwid;
     } else if (user.hwid !== hwid) {
@@ -601,9 +582,9 @@ app.post('/login', async (req, res) => {
     await user.save();
 
     const token = generateToken(username, hwid);
-    return res.json({ 
-        status: 'ok', 
-        token, 
+    return res.json({
+        status: 'ok',
+        token,
         username: user.username,
         daysLeft: getDaysLeft(user.expiresAt),
         expiresAt: user.expiresAt
@@ -617,10 +598,10 @@ app.post('/verify', async (req, res) => {
     const { username, token, hwid } = req.body;
     const user = await User.findOne({ username });
 
-    if (!user || user.status === 'banned')     return res.json({ valid: false, reason: 'banned' });
-    if (getDaysLeft(user.expiresAt) === 0)     return res.json({ valid: false, reason: 'expired' });
-    if (user.hwid !== hwid)                    return res.json({ valid: false, reason: 'hwid_mismatch' });
-    if (generateToken(username, hwid) !== token) return res.json({ valid: false, reason: 'invalid_token' });
+    if (!user || user.status === 'banned')       return res.json({ valid: false, reason: 'banned' });
+    if (getDaysLeft(user.expiresAt) === 0)        return res.json({ valid: false, reason: 'expired' });
+    if (user.hwid !== hwid)                       return res.json({ valid: false, reason: 'hwid_mismatch' });
+    if (generateToken(username, hwid) !== token)  return res.json({ valid: false, reason: 'invalid_token' });
 
     user.lastLogin = now();
     await user.save();
@@ -633,6 +614,12 @@ async function main() {
     await mongoose.connect(MONGO_URI);
     console.log('✅ MongoDB conectado!');
 
+    // FIX: listeners de erro do Discord para não engolir falhas silenciosamente
+    client.on('error',        e => console.error('❌ Discord error:', e));
+    client.on('warn',         w => console.warn ('⚠️  Discord warn:',  w));
+    client.on('disconnect',   () => console.warn ('⚠️  Bot desconectado!'));
+    client.on('reconnecting', () => console.log ('🔄 Bot reconectando...'));
+
     client.once('ready', async () => {
         console.log(`✅ Bot online: ${client.user.tag}`);
         await registerCommands();
@@ -640,7 +627,21 @@ async function main() {
     });
 
     app.listen(PORT, () => console.log(`✅ API na porta ${PORT}`));
-    client.login(BOT_TOKEN);
+
+    // FIX: verifica token antes de tentar logar
+    if (!BOT_TOKEN) {
+        console.error('❌ BOT_TOKEN não definido! Verifique as variáveis de ambiente no Render.');
+        process.exit(1);
+    }
+
+    console.log('🔑 Tentando login no Discord...');
+
+    // FIX: await + catch explícito para capturar token inválido
+    await client.login(BOT_TOKEN).catch(e => {
+        console.error('❌ Falha no login do Discord:', e.message);
+        console.error('   → Token inválido ou sem permissão. Gere um novo token em discord.com/developers');
+        process.exit(1);
+    });
 }
 
 main().catch(e => { console.error('❌ Erro fatal:', e); process.exit(1); });
