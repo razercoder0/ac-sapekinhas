@@ -635,7 +635,8 @@ async function main() {
     }
 
     console.log('🔑 Tentando login no Discord...');
-
+console.log('TOKEN inicio:', BOT_TOKEN?.substring(0, 20));
+console.log('TOKEN length:', BOT_TOKEN?.length);
     // FIX: await + catch explícito para capturar token inválido
     await client.login(BOT_TOKEN).catch(e => {
         console.error('❌ Falha no login do Discord:', e.message);
@@ -645,3 +646,4 @@ async function main() {
 }
 
 main().catch(e => { console.error('❌ Erro fatal:', e); process.exit(1); });
+
